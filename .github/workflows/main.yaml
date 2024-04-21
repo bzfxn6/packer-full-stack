@@ -1,0 +1,55 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Plan Terraform changes
+      - name: Plan Terraform changes
+        run: terraform plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Wait for manual approval
+      - name: Wait for approval
+        if: github.event_name == 'push'
+        uses: talos-systems/gha-await@v2
+        with:
+          workflow-id: ${{ github.event.workflow_run_id }}
+          wait: success
+          timeout: 2592000 # 30 days
+
+      # Deploy AWS resources using Terraform
+      - name: Deploy AWS resources
+        run: terraform apply -auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Build and push Docker image to ECR
+      - name: Build and push Docker image
+        run: |
+          docker build -t my-app .
+          docker tag my-app:latest <aws_account_id>.dkr.ecr.your-region.amazonaws.com/hello-world-repo:latest
+          aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.your-region.amazonaws.com
+          docker push <aws_account_id>.dkr.ecr.your-region.amazonaws.com/hello-world-repo:latest
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Deploy ECS service using Terraform
+      - name: Deploy ECS service
+        run: terraform apply -auto-approve
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
