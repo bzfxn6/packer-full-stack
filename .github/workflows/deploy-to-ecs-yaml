@@ -1,0 +1,44 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Login to AWS ECR
+      run: |
+        aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.your-region.amazonaws.com
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Build Docker image
+      run: |
+        docker build -t my-app .
+
+    - name: Tag Docker image
+      run: |
+        docker tag my-app:latest <aws_account_id>.dkr.ecr.your-region.amazonaws.com/hello-world-repo:latest
+
+    - name: Push Docker image to ECR
+      run: |
+        docker push <aws_account_id>.dkr.ecr.your-region.amazonaws.com/hello-world-repo:latest
+
+    - name: Initialize Terraform
+      run: |
+        terraform init
+
+    - name: Apply Terraform
+      run: |
+        terraform apply -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
