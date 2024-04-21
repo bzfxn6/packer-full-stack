@@ -63,3 +63,38 @@ resource "aws_iam_policy_attachment" "ecs_task_execution_role_attachment" {
 
 resource "aws_ecr_repository" "hello_world_repo" {
   name = "hello-world-repo"
+}
+
+# resource "aws_ecs_cluster" "hello_world_cluster" {
+#   name = "hello-world-cluster"
+# }
+
+# resource "aws_ecs_task_definition" "hello_world_task" {
+#   family                   = "hello-world-task"
+#   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+#   network_mode             = "awsvpc"
+
+#   container_definitions = jsonencode([
+#     {
+#       name      = "hello-world-container"
+#       image     = "hello-world:linux"
+#       cpu       = 256
+#       memory    = 512
+#       essential = true
+#     }
+#   ])
+# }
+
+# resource "aws_ecs_service" "hello_world_service" {
+#   name            = "hello-world-service"
+#   cluster         = aws_ecs_cluster.hello_world_cluster.id
+#   task_definition = aws_ecs_task_definition.hello_world_task.arn
+#   desired_count   = 1
+#   launch_type     = "FARGATE"
+
+#   network_configuration {
+#     subnets         = [aws_subnet.subnet_a.id]
+#     security_groups = [aws_security_group.my_security_group.id]
+#     assign_public_ip = true
+#   }
+# }
